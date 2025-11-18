@@ -4,4 +4,4 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-})git remote add origin https://github.com/itzgauravgoswami/MedLife.git
+})
