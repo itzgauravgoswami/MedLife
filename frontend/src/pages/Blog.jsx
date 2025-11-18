@@ -1,0 +1,79 @@
+export default function Blog() {
+  const articles = [
+    {
+      title: "10 Tips for Better Health in 2024",
+      excerpt: "Learn essential tips to maintain a healthy lifestyle and improve your overall well-being.",
+      date: "Nov 15, 2024",
+      category: "Health Tips"
+    },
+    {
+      title: "Understanding Digital Health Records",
+      excerpt: "A comprehensive guide to digital health records and why they matter for your healthcare.",
+      date: "Nov 12, 2024",
+      category: "Technology"
+    },
+    {
+      title: "Mental Health Awareness Month",
+      excerpt: "Breaking stigmas and understanding the importance of mental health care.",
+      date: "Nov 10, 2024",
+      category: "Mental Health"
+    },
+    {
+      title: "Preventive Care: Why It Matters",
+      excerpt: "Explore the benefits of preventive healthcare and how it can save lives.",
+      date: "Nov 8, 2024",
+      category: "Wellness"
+    },
+    {
+      title: "Telemedicine: The Future of Healthcare",
+      excerpt: "How telehealth is transforming access to medical care worldwide.",
+      date: "Nov 5, 2024",
+      category: "Innovation"
+    },
+    {
+      title: "Managing Chronic Diseases at Home",
+      excerpt: "Best practices for managing chronic conditions with digital health tools.",
+      date: "Nov 1, 2024",
+      category: "Health Management"
+    }
+  ];
+
+  return (
+    <div className="pt-6">
+      <section className="px-4 md:px-16 py-12 bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-50 relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-200 rounded-full opacity-20 -mr-48 -mt-48"></div>
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-blue-200 rounded-full opacity-20 -ml-36 -mb-36"></div>
+        
+        <div className="max-w-6xl mx-auto relative z-10">
+          <div className="mb-8">
+            <span className="inline-block px-4 py-2 bg-cyan-100 text-cyan-600 rounded-full text-sm font-semibold">Health Insights</span>
+          </div>
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+            Health <span className="bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">Blog</span>
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl leading-relaxed">
+            Stay informed with the latest health tips, medical news, and wellness insights.
+          </p>
+        </div>
+      </section>
+
+      <section className="px-4 md:px-16 py-24 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {articles.map((article, index) => (
+              <div key={index} className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 border border-gray-200 cursor-pointer">
+                <div className="p-6">
+                  <p className="text-cyan-500 text-sm font-semibold mb-2">{article.category}</p>
+                  <h3 className="text-xl font-bold text-gray-900 mb-3">{article.title}</h3>
+                  <p className="text-gray-600 text-sm mb-4">{article.excerpt}</p>
+                  <p className="text-gray-500 text-xs">{article.date}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
