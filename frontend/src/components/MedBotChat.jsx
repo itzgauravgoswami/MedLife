@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import API_URL from '../config/api'
 
 export default function MedBotChat() {
   const [isOpen, setIsOpen] = useState(false)
@@ -41,7 +42,7 @@ export default function MedBotChat() {
     setError('')
 
     try {
-      const response = await fetch('http://localhost:5000/api/medbot/chat', {
+      const response = await fetch(`${API_URL}/api/medbot/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: inputValue })

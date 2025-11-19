@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import API_URL from '../config/api'
 
 export default function Blog() {
   const [articles, setArticles] = useState([])
@@ -10,7 +11,7 @@ export default function Blog() {
 
   const fetchBlogs = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/blogs')
+      const response = await fetch(`${API_URL}/api/blogs`)
       const data = await response.json()
       setArticles(data)
       setLoading(false)

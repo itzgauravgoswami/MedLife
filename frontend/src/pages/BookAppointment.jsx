@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
+import API_URL from '../config/api'
 
 export default function BookAppointment() {
   const navigate = useNavigate()
@@ -24,7 +25,7 @@ export default function BookAppointment() {
 
   const fetchDoctors = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/doctors')
+      const response = await fetch(`${API_URL}/api/doctors`)
       if (response.ok) {
         const data = await response.json()
         setDoctors(data.filter(d => d.isVerified))
@@ -41,14 +42,14 @@ export default function BookAppointment() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmitAppointment = async (e) => {
     e.preventDefault()
     setSubmitting(true)
     setError('')
     setSuccess('')
 
     try {
-      const response = await fetch('http://localhost:5000/api/appointments', {
+      const response = await fetch(`${API_URL}/api/appointments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

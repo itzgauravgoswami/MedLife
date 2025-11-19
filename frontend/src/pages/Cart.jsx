@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import API_URL from '../config/api'
 
 export default function Cart() {
   const [cartItems, setCartItems] = useState(() => {
@@ -57,7 +58,7 @@ export default function Cart() {
         quantity: item.quantity
       }))
 
-      const response = await fetch('http://localhost:5000/api/orders', {
+      const response = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

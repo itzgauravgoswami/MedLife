@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import API_URL from '../config/api'
 
 export default function DoctorAdmin() {
   const navigate = useNavigate()
@@ -35,8 +36,8 @@ export default function DoctorAdmin() {
       const headers = { 'Authorization': `Bearer ${token}` }
       
       const [appointmentsRes, blogsRes] = await Promise.all([
-        fetch('http://localhost:5000/api/doctor/appointments', { headers }),
-        fetch('http://localhost:5000/api/doctor/blogs', { headers })
+        fetch(`${API_URL}/api/doctor/appointments`, { headers }),
+        fetch(`${API_URL}/api/doctor/blogs`, { headers })
       ])
 
       const appointmentsData = await appointmentsRes.json()
@@ -53,7 +54,7 @@ export default function DoctorAdmin() {
 
   const handleAppointmentUpdate = async (appointmentId, newStatus) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/doctor/appointments/${appointmentId}`, {
+      const response = await fetch(`${API_URL}/api/doctor/appointments/${appointmentId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -75,7 +76,7 @@ export default function DoctorAdmin() {
   const handlePostBlog = async (e) => {
     e.preventDefault()
     try {
-      const response = await fetch('http://localhost:5000/api/doctor/blogs', {
+      const response = await fetch(`${API_URL}/api/doctor/blogs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

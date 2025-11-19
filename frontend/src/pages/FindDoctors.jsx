@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import API_URL from '../config/api'
 
 export default function FindDoctors() {
   const navigate = useNavigate()
@@ -13,7 +14,7 @@ export default function FindDoctors() {
 
   const fetchDoctors = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/doctors')
+      const response = await fetch(`${API_URL}/api/doctors`)
       const data = await response.json()
       setDoctors(data)
       setLoading(false)

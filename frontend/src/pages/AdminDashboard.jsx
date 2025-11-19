@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import API_URL from '../config/api'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -30,7 +31,7 @@ export default function AdminDashboard() {
   const handleAdminLogin = async (e) => {
     e.preventDefault()
     try {
-      const response = await fetch('http://localhost:5000/api/admin/login', {
+      const response = await fetch(`${API_URL}/api/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(loginData)
@@ -60,11 +61,11 @@ export default function AdminDashboard() {
       const headers = { 'Authorization': `Bearer ${token}` }
       
       const [pendingRes, verifiedRes, medicinesRes, appointmentsRes, ordersRes] = await Promise.all([
-        fetch('http://localhost:5000/api/admin/doctors/pending', { headers }),
-        fetch('http://localhost:5000/api/admin/doctors/verified', { headers }),
-        fetch('http://localhost:5000/api/admin/medicines', { headers }),
-        fetch('http://localhost:5000/api/admin/appointments', { headers }),
-        fetch('http://localhost:5000/api/admin/orders', { headers })
+        fetch(`${API_URL}/api/admin/doctors/pending`, { headers }),
+        fetch(`${API_URL}/api/admin/doctors/verified`, { headers }),
+        fetch(`${API_URL}/api/admin/medicines`, { headers }),
+        fetch(`${API_URL}/api/admin/appointments`, { headers }),
+        fetch(`${API_URL}/api/admin/orders`, { headers })
       ])
 
       if (pendingRes.ok) setPendingDoctors(await pendingRes.json())
@@ -81,7 +82,7 @@ export default function AdminDashboard() {
 
   const handleOrderStatusChange = async (orderId, newStatus) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/orders/${orderId}`, {
+      const response = await fetch(`${API_URL}/api/admin/orders/${orderId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -103,7 +104,7 @@ export default function AdminDashboard() {
   const handleDeleteOrder = async (orderId) => {
     if (window.confirm('Are you sure you want to delete this order?')) {
       try {
-        await fetch(`http://localhost:5000/api/admin/orders/${orderId}`, {
+        await fetch(`${API_URL}/api/admin/orders/${orderId}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${adminToken}` }
         })
@@ -116,7 +117,7 @@ export default function AdminDashboard() {
 
   const handleVerifyDoctor = async (doctorId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/doctors/${doctorId}/verify`, {
+      const response = await fetch(`${API_URL}/api/admin/doctors/${doctorId}/verify`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${adminToken}` }
       })
@@ -134,7 +135,7 @@ export default function AdminDashboard() {
   const handleRemoveDoctor = async (doctorId) => {
     if (window.confirm('Are you sure?')) {
       try {
-        await fetch(`http://localhost:5000/api/admin/doctors/${doctorId}`, {
+        await fetch(`${API_URL}/api/admin/doctors/${doctorId}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${adminToken}` }
         })
@@ -149,7 +150,7 @@ export default function AdminDashboard() {
   const handleAddMedicine = async (e) => {
     e.preventDefault()
     try {
-      const response = await fetch('http://localhost:5000/api/admin/medicines', {
+      const response = await fetch(`${API_URL}/api/admin/medicines`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
