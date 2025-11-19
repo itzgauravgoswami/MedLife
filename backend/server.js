@@ -12,7 +12,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'https://medlife-backend-sable.vercel.app',
-  'https://medlife-frontend.vercel.app', // Update with your frontend URL when deployed
+  'https://medlife-psi.vercel.app', // Update with your frontend URL when deployed
 ];
 
 const corsOptions = {

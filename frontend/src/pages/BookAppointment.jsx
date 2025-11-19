@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import API_URL from '../config/api'
 
 export default function BookAppointment() {
@@ -118,7 +118,7 @@ export default function BookAppointment() {
             {loading ? (
               <p className="text-center text-gray-600">Loading doctors...</p>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmitAppointment} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-gray-700 font-semibold mb-2">Full Name</label>
