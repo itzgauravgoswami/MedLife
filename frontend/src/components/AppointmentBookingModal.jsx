@@ -24,7 +24,7 @@ export default function AppointmentBookingModal({ isOpen, onClose }) {
 
   const fetchDoctors = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/doctors')
+      const response = await fetch('https://medlife-backend-sable.vercel.app/api/doctors')
       const data = await response.json()
       setDoctors(data)
     } catch (err) {
@@ -46,7 +46,7 @@ export default function AppointmentBookingModal({ isOpen, onClose }) {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:5000/api/appointments', {
+      const response = await fetch('https://medlife-backend-sable.vercel.app/api/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

@@ -30,7 +30,7 @@ export default function DoctorRegisterModal({ isOpen, onClose, onRegisterSuccess
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:5000/api/doctor/register', {
+      const response = await fetch('https://medlife-backend-sable.vercel.app/api/doctor/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
