@@ -7,7 +7,7 @@ export default function Footer() {
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
           {/* Brand Section */}
           <div>
-            <h3 className="text-2xl font-bold text-white mb-4">MedCare</h3>
+            <h3 className="text-2xl font-bold text-white mb-4">MedLife</h3>
             <p className="text-gray-400 leading-relaxed">
               Your trusted partner in digital healthcare. Connecting patients with qualified doctors for better health outcomes.
             </p>
@@ -45,7 +45,7 @@ export default function Footer() {
           <div>
             <h4 className="text-lg font-bold text-white mb-6">Contact Info</h4>
             <ul className="space-y-3">
-              <li className="hover:text-cyan-400 transition">Email: support@medcare.com</li>
+              <li className="hover:text-cyan-400 transition">Email: support@medlife.com</li>
               <li className="hover:text-cyan-400 transition">Phone: +1 (800) 123-4567</li>
               <li className="hover:text-cyan-400 transition">Hours: 24/7</li>
               <li className="hover:text-cyan-400 transition">Address: 123 Health Ave, NY</li>
@@ -55,7 +55,7 @@ export default function Footer() {
 
         <div className="border-t border-gray-700 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400">© 2024 MedCare. All rights reserved.</p>
+            <p className="text-gray-400">© 2024 MedLife. All rights reserved.</p>
             <div className="flex gap-8 mt-4 md:mt-0">
               <a href="#" className="text-gray-400 hover:text-cyan-400 transition">Privacy Policy</a>
               <a href="#" className="text-gray-400 hover:text-cyan-400 transition">Terms of Service</a>

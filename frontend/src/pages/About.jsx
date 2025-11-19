@@ -11,7 +11,7 @@ export default function About() {
             <span className="inline-block px-4 py-2 bg-cyan-100 text-cyan-600 rounded-full text-sm font-semibold">Who We Are</span>
           </div>
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-            About <span className="bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">MedCare</span>
+            About <span className="bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">MedLife</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl leading-relaxed">
             Revolutionizing healthcare through technology and compassion.
@@ -24,7 +24,7 @@ export default function About() {
           <div>
             <h2 className="text-4xl font-bold text-gray-900 mb-6">Our Mission</h2>
             <p className="text-gray-600 text-lg leading-relaxed mb-6">
-              At MedCare, we believe that everyone deserves access to quality healthcare. Our mission is to bridge the gap between patients and healthcare providers through innovative technology and compassionate care.
+              At MedLife, we believe that everyone deserves access to quality healthcare. Our mission is to bridge the gap between patients and healthcare providers through innovative technology and compassionate care.
             </p>
             <p className="text-gray-600 text-lg leading-relaxed">
               We're committed to making healthcare accessible, affordable, and convenient for everyone, anytime, anywhere.
@@ -38,7 +38,7 @@ export default function About() {
 
       <section className="px-4 md:px-16 py-24 bg-gray-50">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold text-gray-900 mb-16 text-center">Why Choose MedCare?</h2>
+          <h2 className="text-4xl font-bold text-gray-900 mb-16 text-center">Why Choose MedLife?</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white rounded-2xl p-8 shadow-md">
               <div className="text-5xl mb-4">🎯</div>

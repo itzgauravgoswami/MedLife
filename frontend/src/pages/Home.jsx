@@ -1,10 +1,16 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaAmazon, FaApple, FaGoogle, FaMicrosoft, FaSpotify, FaSlack } from 'react-icons/fa';
 import { MdCheckCircle, MdCloudUpload, MdAssignment } from 'react-icons/md';
 import { BiSolidStar } from 'react-icons/bi';
 
 export default function Home() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('')
+
+  const handleBookAppointment = () => {
+    navigate('/book-appointment')
+  }
 
   return (
     <div className="bg-white">
@@ -22,7 +28,9 @@ export default function Home() {
             </p>
 
             <div className="flex gap-4 flex-col sm:flex-row">
-              <button className="bg-cyan-400 text-white px-8 py-3 rounded-lg font-semibold hover:bg-cyan-500 transition">
+              <button 
+                onClick={handleBookAppointment}
+                className="bg-cyan-400 text-white px-8 py-3 rounded-lg font-semibold hover:bg-cyan-500 transition">
                 Book an Appointment →
               </button>
             </div>
@@ -88,7 +96,10 @@ export default function Home() {
           </div>
 
           <div className="text-center">
-            <button className="bg-cyan-400 text-white px-8 py-3 rounded-lg font-semibold hover:bg-cyan-500 transition">
+            <button 
+              onClick={handleBookAppointment}
+              className="bg-cyan-400 text-white px-8 py-3 rounded-lg font-semibold hover:bg-cyan-500 transition"
+            >
               Book Now →
             </button>
           </div>

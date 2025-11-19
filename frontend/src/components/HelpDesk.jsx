@@ -25,7 +25,7 @@ export default function HelpDesk() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
           <div className="p-8 border-2 border-gray-200 rounded-2xl hover:border-cyan-500 transition">
             <h3 className="text-2xl font-bold text-gray-900 mb-2">Email Us</h3>
-            <p className="text-gray-600">support@medcare.com</p>
+            <p className="text-gray-600">support@medlife.com</p>
           </div>
 
           <div className="p-8 border-2 border-gray-200 rounded-2xl hover:border-cyan-500 transition">

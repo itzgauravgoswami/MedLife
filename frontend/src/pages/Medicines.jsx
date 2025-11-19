@@ -1,109 +1,60 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 export default function Medicines() {
+  const navigate = useNavigate()
+  const [medicines, setMedicines] = useState([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
+  const [cart, setCart] = useState(() => {
+    const saved = localStorage.getItem('medicineCart')
+    return saved ? JSON.parse(saved) : []
+  })
+  const [addedToCart, setAddedToCart] = useState({})
 
-  const medicines = [
-    {
-      name: "Aspirin 500mg",
-      category: "Pain Relief",
-      type: "Tablet",
-      price: "$5.99",
-      description: "Effective for mild to moderate pain relief and fever reduction.",
-      inStock: true
-    },
-    {
-      name: "Ibuprofen 200mg",
-      category: "Pain Relief",
-      type: "Tablet",
-      price: "$4.99",
-      description: "Anti-inflammatory pain reliever for muscle aches and arthritis.",
-      inStock: true
-    },
-    {
-      name: "Omeprazole 20mg",
-      category: "Digestive",
-      type: "Capsule",
-      price: "$8.99",
-      description: "Reduces stomach acid for heartburn and acid reflux relief.",
-      inStock: true
-    },
-    {
-      name: "Paracetamol 500mg",
-      category: "Pain Relief",
-      type: "Tablet",
-      price: "$3.99",
-      description: "Safe pain reliever and fever reducer for adults and children.",
-      inStock: true
-    },
-    {
-      name: "Ranitidine 150mg",
-      category: "Digestive",
-      type: "Tablet",
-      price: "$6.99",
-      description: "Treats heartburn and gastric ulcers effectively.",
-      inStock: false
-    },
-    {
-      name: "Cetirizine 10mg",
-      category: "Allergies",
-      type: "Tablet",
-      price: "$5.49",
-      description: "Non-drowsy antihistamine for allergy relief.",
-      inStock: true
-    },
-    {
-      name: "Loratadine 10mg",
-      category: "Allergies",
-      type: "Tablet",
-      price: "$6.49",
-      description: "Long-acting antihistamine for seasonal allergies.",
-      inStock: true
-    },
-    {
-      name: "Amoxicillin 500mg",
-      category: "Antibiotics",
-      type: "Capsule",
-      price: "$7.99",
-      description: "Broad-spectrum antibiotic for bacterial infections.",
-      inStock: true
-    },
-    {
-      name: "Metformin 500mg",
-      category: "Diabetes",
-      type: "Tablet",
-      price: "$4.49",
-      description: "Primary medication for type 2 diabetes management.",
-      inStock: true
-    },
-    {
-      name: "Vitamin D3 1000IU",
-      category: "Vitamins",
-      type: "Capsule",
-      price: "$9.99",
-      description: "Essential for bone health and immune system support.",
-      inStock: true
-    },
-    {
-      name: "Multivitamin Complex",
-      category: "Vitamins",
-      type: "Tablet",
-      price: "$12.99",
-      description: "Complete nutritional support with essential vitamins and minerals.",
-      inStock: true
-    },
-    {
-      name: "Vitamin C 500mg",
-      category: "Vitamins",
-      type: "Tablet",
-      price: "$6.99",
-      description: "Boosts immunity and supports overall health.",
-      inStock: true
+  useEffect(() => {
+    fetchMedicines()
+  }, [])
+
+  const fetchMedicines = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/medicines')
+      const data = await response.json()
+      setMedicines(data)
+      setLoading(false)
+    } catch (error) {
+      console.error('Error fetching medicines:', error)
+      setLoading(false)
     }
-  ]
+  }
 
-  const categories = ['All', 'Pain Relief', 'Digestive', 'Allergies', 'Antibiotics', 'Diabetes', 'Vitamins']
+  const addToCart = (medicine) => {
+    const existingItem = cart.find(item => item._id === medicine._id)
+    let updatedCart
+
+    if (existingItem) {
+      updatedCart = cart.map(item =>
+        item._id === medicine._id
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      )
+    } else {
+      updatedCart = [...cart, { ...medicine, quantity: 1 }]
+    }
+
+    setCart(updatedCart)
+    localStorage.setItem('medicineCart', JSON.stringify(updatedCart))
+
+    setAddedToCart({ ...addedToCart, [medicine._id]: true })
+    setTimeout(() => {
+      setAddedToCart(prev => ({ ...prev, [medicine._id]: false }))
+    }, 2000)
+  }
+
+  const categories = medicines.length > 0 
+    ? ['All', ...new Set(medicines.map(m => m.category))]
+    : ['All']
 
   const filteredMedicines = medicines.filter(medicine => {
     const matchesCategory = selectedCategory === 'All' || medicine.category === selectedCategory
@@ -135,14 +86,22 @@ export default function Medicines() {
       <section className="px-4 md:px-16 py-16 bg-white">
         <div className="max-w-6xl mx-auto">
           {/* Search Bar */}
-          <div className="mb-8">
+          <div className="flex justify-between items-center mb-8">
             <input
               type="text"
               placeholder="Search medicines by name or description..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-6 py-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:border-cyan-500 transition"
+              className="flex-1 px-6 py-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:border-cyan-500 transition"
             />
+            {cart.length > 0 && (
+              <button
+                onClick={() => navigate('/cart')}
+                className="ml-4 bg-cyan-500 text-white font-semibold px-6 py-3 rounded-lg hover:bg-cyan-600 transition flex items-center gap-2"
+              >
+                🛒 Cart ({cart.length})
+              </button>
+            )}
           </div>
 
           {/* Category Filter */}
@@ -164,20 +123,24 @@ export default function Medicines() {
 
           {/* Medicines Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredMedicines.length > 0 ? (
+            {loading ? (
+              <div className="col-span-full text-center py-12">
+                <p className="text-gray-600">Loading medicines...</p>
+              </div>
+            ) : filteredMedicines.length > 0 ? (
               filteredMedicines.map((medicine, index) => (
-                <div key={index} className="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-200">
+                <div key={medicine._id} className="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-200">
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h3 className="text-xl font-bold text-gray-900 mb-1">{medicine.name}</h3>
                       <p className="text-sm text-cyan-500 font-semibold">{medicine.category}</p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      medicine.inStock
+                      medicine.stock > 0
                         ? 'bg-green-100 text-green-700'
                         : 'bg-red-100 text-red-700'
                     }`}>
-                      {medicine.inStock ? 'In Stock' : 'Out of Stock'}
+                      {medicine.stock > 0 ? `${medicine.stock} In Stock` : 'Out of Stock'}
                     </span>
                   </div>
 
@@ -190,25 +153,28 @@ export default function Medicines() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-gray-500 mb-1">Price</p>
-                      <p className="text-2xl font-bold text-cyan-500">{medicine.price}</p>
+                      <p className="text-2xl font-bold text-cyan-500">₹{medicine.price}</p>
                     </div>
                   </div>
 
                   <button
-                    disabled={!medicine.inStock}
+                    onClick={() => addToCart(medicine)}
                     className={`w-full font-semibold py-2 rounded-lg transition-all duration-300 ${
-                      medicine.inStock
-                        ? 'bg-gradient-to-r from-blue-500 to-cyan-400 text-white hover:shadow-lg hover:scale-105'
+                      medicine.stock > 0
+                        ? addedToCart[medicine._id]
+                          ? 'bg-green-500 text-white'
+                          : 'bg-gradient-to-r from-blue-500 to-cyan-400 text-white hover:shadow-lg hover:scale-105'
                         : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                     }`}
+                    disabled={medicine.stock <= 0}
                   >
-                    {medicine.inStock ? 'Add to Cart' : 'Unavailable'}
+                    {addedToCart[medicine._id] ? '✓ Added to Cart' : medicine.stock > 0 ? 'Add to Cart' : 'Unavailable'}
                   </button>
                 </div>
               ))
             ) : (
               <div className="col-span-full text-center py-12">
-                <p className="text-gray-600 text-lg">No medicines found matching your search.</p>
+                <p className="text-gray-600 text-lg">No medicines found. Admin will add medicines soon.</p>
               </div>
             )}
           </div>

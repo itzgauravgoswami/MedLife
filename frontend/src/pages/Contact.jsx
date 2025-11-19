@@ -69,8 +69,8 @@ export default function Contact() {
             <div className="space-y-8">
               <div>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">Email</h3>
-                <p className="text-gray-600">support@medcare.com</p>
-                <p className="text-gray-600">info@medcare.com</p>
+                <p className="text-gray-600">support@medlife.com</p>
+                <p className="text-gray-600">info@medlife.com</p>
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">Phone</h3>
