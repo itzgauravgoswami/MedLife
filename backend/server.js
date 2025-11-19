@@ -12,25 +12,30 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'https://medlife-backend-sable.vercel.app',
-  'https://medlife-psi.vercel.app', // Update with your frontend URL when deployed
+  'https://medlife-psi.vercel.app',
 ];
 
 const corsOptions = {
-  origin: (origin, callback) => {
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or Vercel deployments)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error('CORS not allowed for origin: ' + origin));
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200, // For legacy browsers
 };
 
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// Handle preflight requests for all routes
+app.options('*', cors(corsOptions));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
