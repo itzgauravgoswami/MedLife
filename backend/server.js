@@ -6,28 +6,13 @@ const Admin = require('./models/Admin');
 
 const app = express();
 
-// CORS Configuration - Support local dev and production
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'https://medlife-backend-sable.vercel.app',
-  'https://medlife-psi.vercel.app',
-];
-
+// CORS Configuration - Simplified for Vercel compatibility
 const corsOptions = {
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or Vercel deployments)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS not allowed for origin: ' + origin));
-    }
-  },
-  credentials: true,
+  origin: '*', // Allow all origins in production
+  credentials: false, // Set to false when origin is '*'
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 200, // For legacy browsers
+  optionsSuccessStatus: 200,
 };
 
 // Middleware
