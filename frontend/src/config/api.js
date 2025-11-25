@@ -1,4 +1,4 @@
 // API Configuration
-const API_URL = 'https://medlife-backend-sable.vercel.app';
+const API_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || 'http://localhost:5000';
 
 export default API_URL;
