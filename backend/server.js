@@ -3,48 +3,18 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
-// Global error handlers to prevent crashes
+const app = express();
+
+// Global error handlers
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('Unhandled Rejection:', reason);
 });
 
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
 });
 
-const Admin = require('./models/Admin');
-
-const app = express();
-
-// Socket.io setup (only in local development)
-let io = null;
-let server = null;
-
-// Only use Socket.io in local development (not on Vercel)
-if (!process.env.VERCEL) {
-  try {
-    const http = require('http');
-    server = http.createServer(app);
-    try {
-      const socketIo = require('socket.io');
-      io = socketIo(server, {
-        cors: {
-          origin: '*',
-          methods: ['GET', 'POST']
-        }
-      });
-      console.log('Socket.io enabled for local development');
-    } catch (socketErr) {
-      console.log('Socket.io not available, continuing without websockets');
-    }
-  } catch (err) {
-    console.log('HTTP server creation error:', err.message);
-  }
-} else {
-  console.log('Running on Vercel - Socket.io disabled');
-}
-
-// Simplified CORS - allow everything for now
+// CORS - Allow all origins
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
@@ -58,51 +28,57 @@ app.use((req, res, next) => {
 });
 
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Health check endpoints
 app.get('/', (req, res) => {
-  res.status(200).json({ 
+  res.json({ 
     status: 'OK', 
     message: 'MedLife Backend API',
-    version: '1.0.0'
+    version: '1.0.0',
+    timestamp: new Date().toISOString()
   });
 });
 
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
+  res.json({ 
     status: 'OK', 
     message: 'Backend is running',
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString()
   });
 });
 
-// MongoDB Connection - non-blocking
-let dbConnected = false;
+// MongoDB Connection
 if (process.env.MONGODB_URI) {
+  mongoose.set('strictQuery', false);
   mongoose.connect(process.env.MONGODB_URI, {
-    serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: 10000,
+    socketTimeoutMS: 45000,
   })
     .then(() => {
-      console.log('MongoDB Connected');
-      dbConnected = true;
+      console.log('✅ MongoDB Connected');
       initializeAdmin();
     })
     .catch(err => {
-      console.error('MongoDB Connection Error:', err.message);
+      console.error('❌ MongoDB Connection Error:', err.message);
     });
 } else {
-  console.error('MONGODB_URI not set in environment variables');
+  console.error('⚠️  MONGODB_URI not set');
 }
 
+// Initialize admin account
 async function initializeAdmin() {
   try {
     if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
-      console.log('Admin credentials not set in environment');
+      console.log('⚠️  Admin credentials not set');
       return;
     }
     
+    const Admin = require('./models/Admin');
     const adminExists = await Admin.findOne({ email: process.env.ADMIN_EMAIL });
+    
     if (!adminExists) {
       const admin = new Admin({
         email: process.env.ADMIN_EMAIL,
@@ -110,114 +86,140 @@ async function initializeAdmin() {
         name: 'Admin'
       });
       await admin.save();
-      console.log('Default admin created');
+      console.log('✅ Default admin created');
+    } else {
+      console.log('✅ Admin account exists');
     }
   } catch (err) {
-    console.log('Error creating admin:', err.message);
+    console.error('❌ Error initializing admin:', err.message);
   }
 }
 
-// Routes with error handling
+// Load routes with error handling
+console.log('📦 Loading routes...');
+
 try {
-  app.use('/api/user', require('./routes/user'));
-  app.use('/api/doctor', require('./routes/doctor'));
-  app.use('/api/admin', require('./routes/admin'));
-  app.use('/api/delivery', require('./routes/delivery'));
-  app.use('/api', require('./routes/public'));
-  app.use('/api/order', require('./routes/order'));
-  app.use('/api/payment', require('./routes/payment'));
-  app.use('/api/reports', require('./routes/reports'));
-  app.use('/api/prescription', require('./routes/prescription'));
-  app.use('/api/telemedicine', require('./routes/telemedicine'));
-  app.use('/api/medbot', require('./routes/medbot'));
-  console.log('All routes loaded successfully');
-} catch (routeErr) {
-  console.error('Error loading routes:', routeErr.message);
+  const userRoutes = require('./routes/user');
+  app.use('/api/user', userRoutes);
+  console.log('✓ User routes loaded');
+} catch (err) {
+  console.error('✗ Error loading user routes:', err.message);
 }
+
+try {
+  const doctorRoutes = require('./routes/doctor');
+  app.use('/api/doctor', doctorRoutes);
+  console.log('✓ Doctor routes loaded');
+} catch (err) {
+  console.error('✗ Error loading doctor routes:', err.message);
+}
+
+try {
+  const adminRoutes = require('./routes/admin');
+  app.use('/api/admin', adminRoutes);
+  console.log('✓ Admin routes loaded');
+} catch (err) {
+  console.error('✗ Error loading admin routes:', err.message);
+}
+
+try {
+  const deliveryRoutes = require('./routes/delivery');
+  app.use('/api/delivery', deliveryRoutes);
+  console.log('✓ Delivery routes loaded');
+} catch (err) {
+  console.error('✗ Error loading delivery routes:', err.message);
+}
+
+try {
+  const publicRoutes = require('./routes/public');
+  app.use('/api', publicRoutes);
+  console.log('✓ Public routes loaded');
+} catch (err) {
+  console.error('✗ Error loading public routes:', err.message);
+}
+
+try {
+  const orderRoutes = require('./routes/order');
+  app.use('/api/order', orderRoutes);
+  console.log('✓ Order routes loaded');
+} catch (err) {
+  console.error('✗ Error loading order routes:', err.message);
+}
+
+try {
+  const paymentRoutes = require('./routes/payment');
+  app.use('/api/payment', paymentRoutes);
+  console.log('✓ Payment routes loaded');
+} catch (err) {
+  console.error('✗ Error loading payment routes:', err.message);
+}
+
+try {
+  const reportsRoutes = require('./routes/reports');
+  app.use('/api/reports', reportsRoutes);
+  console.log('✓ Reports routes loaded');
+} catch (err) {
+  console.error('✗ Error loading reports routes:', err.message);
+}
+
+try {
+  const prescriptionRoutes = require('./routes/prescription');
+  app.use('/api/prescription', prescriptionRoutes);
+  console.log('✓ Prescription routes loaded');
+} catch (err) {
+  console.error('✗ Error loading prescription routes:', err.message);
+}
+
+try {
+  const telemedicineRoutes = require('./routes/telemedicine');
+  app.use('/api/telemedicine', telemedicineRoutes);
+  console.log('✓ Telemedicine routes loaded');
+} catch (err) {
+  console.error('✗ Error loading telemedicine routes:', err.message);
+}
+
+try {
+  const medbotRoutes = require('./routes/medbot');
+  app.use('/api/medbot', medbotRoutes);
+  console.log('✓ Medbot routes loaded');
+} catch (err) {
+  console.error('✗ Error loading medbot routes:', err.message);
+}
+
+console.log('✅ All routes loaded');
 
 // 404 handler
 app.use((req, res) => {
+  console.log('404 - Route not found:', req.method, req.path);
   res.status(404).json({ 
+    success: false,
     message: 'Route not found',
     path: req.path,
     method: req.method
   });
 });
 
-// Error handler
+// Global error handler
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({ 
+  console.error('❌ Global error handler:', err.message);
+  console.error(err.stack);
+  
+  res.status(err.status || 500).json({ 
+    success: false,
     message: 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
+    path: req.path
   });
 });
 
-// Socket.io event handlers (only if socket.io is enabled)
-if (io) {
-  io.on('connection', (socket) => {
-    console.log('New client connected:', socket.id);
-
-    socket.on('join-room', (roomId, userId) => {
-      socket.join(roomId);
-      socket.to(roomId).emit('user-connected', userId);
-      console.log(`User ${userId} joined room ${roomId}`);
-    });
-
-    socket.on('offer', (roomId, offer) => {
-      socket.to(roomId).emit('offer', offer);
-    });
-
-    socket.on('answer', (roomId, answer) => {
-      socket.to(roomId).emit('answer', answer);
-    });
-
-    socket.on('ice-candidate', (roomId, candidate) => {
-      socket.to(roomId).emit('ice-candidate', candidate);
-    });
-
-    socket.on('send-message', (roomId, message) => {
-      io.to(roomId).emit('receive-message', message);
-    });
-
-    socket.on('location-update', (data) => {
-      io.emit('delivery-location-update', data);
-    });
-
-    socket.on('order-status-update', (data) => {
-      io.emit('order-status-changed', data);
-    });
-
-    socket.on('appointment-update', (data) => {
-      io.emit('appointment-status-changed', data);
-    });
-
-    socket.on('leave-room', (roomId, userId) => {
-      socket.to(roomId).emit('user-disconnected', userId);
-      socket.leave(roomId);
-    });
-
-    socket.on('disconnect', () => {
-      console.log('Client disconnected:', socket.id);
-    });
-  });
-
-  app.set('io', io);
-}
-
-// For Vercel serverless
+// Export for Vercel serverless
 if (process.env.VERCEL) {
+  console.log('🚀 Running on Vercel');
   module.exports = app;
 } else {
-  // For local development
+  // Local development server
   const PORT = process.env.PORT || 5000;
-  if (server) {
-    server.listen(PORT, () => {
-      console.log(`Server running on port ${PORT} with Socket.io`);
-    });
-  } else {
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT} without Socket.io`);
-    });
-  }
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
 }
