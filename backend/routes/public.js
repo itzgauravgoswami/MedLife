@@ -1,66 +1,116 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Appointment = require('../models/Appointment');
 const Blog = require('../models/Blog');
 const Doctor = require('../models/Doctor');
 const Medicine = require('../models/Medicine');
 
+// Middleware to check database connection
+const checkDbConnection = (req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    console.error('❌ Database not connected. ReadyState:', mongoose.connection.readyState);
+    return res.status(503).json({ 
+      success: false,
+      message: 'Database connection unavailable. Please try again.',
+      dbState: mongoose.connection.readyState
+    });
+  }
+  next();
+};
+
 // Book Appointment (Public)
-router.post('/appointments', async (req, res) => {
+router.post('/appointments', checkDbConnection, async (req, res) => {
   try {
-    console.log('Appointment request received:', req.body);
+    console.log('📝 Appointment request received');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
     
     const { patientName, patientEmail, patientPhone, patientAge, symptoms, doctorId, appointmentDate, consultationType } = req.body;
 
-    if (!doctorId) {
-      console.log('Error: Doctor selection required');
-      return res.status(400).json({ message: 'Doctor selection required' });
+    // Validate required fields
+    if (!patientName || !patientEmail || !patientPhone) {
+      console.log('❌ Missing required patient information');
+      return res.status(400).json({ 
+        success: false,
+        message: 'Missing required patient information' 
+      });
     }
 
-    console.log('Checking doctor:', doctorId);
-    const doctor = await Doctor.findById(doctorId);
+    if (!doctorId) {
+      console.log('❌ Doctor selection required');
+      return res.status(400).json({ 
+        success: false,
+        message: 'Doctor selection required' 
+      });
+    }
+
+    console.log('🔍 Checking doctor:', doctorId);
+    
+    let doctor;
+    try {
+      doctor = await Doctor.findById(doctorId);
+    } catch (dbErr) {
+      console.error('❌ Database error finding doctor:', dbErr.message);
+      return res.status(500).json({ 
+        success: false,
+        message: 'Database error',
+        error: dbErr.message
+      });
+    }
+
     if (!doctor) {
-      console.log('Error: Doctor not found');
-      return res.status(400).json({ message: 'Doctor not found' });
+      console.log('❌ Doctor not found');
+      return res.status(404).json({ 
+        success: false,
+        message: 'Doctor not found' 
+      });
     }
     
     if (!doctor.isVerified) {
-      console.log('Error: Doctor not verified');
-      return res.status(400).json({ message: 'Doctor not verified' });
+      console.log('❌ Doctor not verified');
+      return res.status(400).json({ 
+        success: false,
+        message: 'Doctor not verified' 
+      });
     }
+
+    console.log('✅ Doctor verified, creating appointment...');
 
     const appointment = new Appointment({
       patientName,
       patientEmail,
       patientPhone,
-      patientAge,
-      symptoms,
+      patientAge: patientAge || 0,
+      symptoms: symptoms || 'Not specified',
       doctorId,
-      appointmentDate,
-      consultationType,
+      appointmentDate: appointmentDate || new Date(),
+      consultationType: consultationType || 'video',
       status: 'pending'
     });
 
-    console.log('Saving appointment...');
+    console.log('💾 Saving appointment...');
     await appointment.save();
-    console.log('Appointment saved successfully');
+    console.log('✅ Appointment saved successfully');
 
     res.status(201).json({
+      success: true,
       message: 'Appointment booked successfully. Doctor will confirm shortly.',
       appointment
     });
   } catch (err) {
-    console.error('Error booking appointment:', err);
+    console.error('❌ Error booking appointment:', err.message);
+    console.error('Stack trace:', err.stack);
     res.status(500).json({ 
+      success: false,
       message: 'Error booking appointment', 
       error: err.message,
-      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+      details: process.env.NODE_ENV === 'development' ? err.stack : 'Internal server error'
     });
   }
 });
 
 // Get Verified Doctors (Public)
-router.get('/doctors', async (req, res) => {
+router.get('/doctors', checkDbConnection, async (req, res) => {
   try {
     const doctors = await Doctor.find({ isVerified: true }).select('-password');
     res.json(doctors);
