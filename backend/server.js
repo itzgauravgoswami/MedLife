@@ -31,6 +31,21 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Middleware to ensure DB connection for API routes
+app.use('/api', async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('❌ Failed to connect to database:', err.message);
+    res.status(503).json({
+      success: false,
+      message: 'Database connection unavailable',
+      error: err.message
+    });
+  }
+});
+
 // Health check endpoints
 app.get('/', (req, res) => {
   res.json({ 
@@ -87,23 +102,71 @@ app.get('/debug/models', (req, res) => {
   }
 });
 
-// MongoDB Connection
-if (process.env.MONGODB_URI) {
-  mongoose.set('strictQuery', false);
-  mongoose.connect(process.env.MONGODB_URI, {
-    serverSelectionTimeoutMS: 10000,
-    socketTimeoutMS: 45000,
-  })
-    .then(() => {
-      console.log('✅ MongoDB Connected');
-      initializeAdmin();
-    })
-    .catch(err => {
-      console.error('❌ MongoDB Connection Error:', err.message);
-    });
-} else {
-  console.error('⚠️  MONGODB_URI not set');
+// MongoDB Connection with caching for serverless
+let isConnected = false;
+
+async function connectDB() {
+  if (isConnected && mongoose.connection.readyState === 1) {
+    console.log('📍 Using existing MongoDB connection');
+    return;
+  }
+
+  if (!process.env.MONGODB_URI) {
+    console.error('⚠️  MONGODB_URI not set in environment variables');
+    throw new Error('MONGODB_URI not configured');
+  }
+
+  try {
+    mongoose.set('strictQuery', false);
+    
+    const options = {
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+      maxPoolSize: 10,
+      minPoolSize: 1,
+      maxIdleTimeMS: 30000,
+    };
+
+    if (mongoose.connection.readyState === 0) {
+      console.log('🔌 Connecting to MongoDB...');
+      await mongoose.connect(process.env.MONGODB_URI, options);
+      console.log('✅ MongoDB Connected Successfully');
+      isConnected = true;
+      
+      // Initialize admin only once
+      if (!global.adminInitialized) {
+        await initializeAdmin();
+        global.adminInitialized = true;
+      }
+    } else {
+      console.log('📍 MongoDB already connecting/connected');
+      isConnected = true;
+    }
+  } catch (err) {
+    console.error('❌ MongoDB Connection Error:', err.message);
+    isConnected = false;
+    throw err;
+  }
 }
+
+// Handle connection events
+mongoose.connection.on('connected', () => {
+  console.log('✅ Mongoose connected to MongoDB');
+  isConnected = true;
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('❌ Mongoose connection error:', err);
+  isConnected = false;
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('⚠️  Mongoose disconnected from MongoDB');
+  isConnected = false;
+});
+
+// Initial connection attempt
+connectDB().catch(err => console.error('Initial connection failed:', err.message));
 
 // Initialize admin account
 async function initializeAdmin() {

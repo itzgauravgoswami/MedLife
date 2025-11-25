@@ -1,26 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
 const Appointment = require('../models/Appointment');
 const Blog = require('../models/Blog');
 const Doctor = require('../models/Doctor');
 const Medicine = require('../models/Medicine');
 
-// Middleware to check database connection
-const checkDbConnection = (req, res, next) => {
-  if (mongoose.connection.readyState !== 1) {
-    console.error('❌ Database not connected. ReadyState:', mongoose.connection.readyState);
-    return res.status(503).json({ 
-      success: false,
-      message: 'Database connection unavailable. Please try again.',
-      dbState: mongoose.connection.readyState
-    });
-  }
-  next();
-};
-
 // Book Appointment (Public)
-router.post('/appointments', checkDbConnection, async (req, res) => {
+router.post('/appointments', async (req, res) => {
   try {
     console.log('📝 Appointment request received');
     console.log('Request body:', JSON.stringify(req.body, null, 2));
@@ -110,7 +96,7 @@ router.post('/appointments', checkDbConnection, async (req, res) => {
 });
 
 // Get Verified Doctors (Public)
-router.get('/doctors', checkDbConnection, async (req, res) => {
+router.get('/doctors', async (req, res) => {
   try {
     const doctors = await Doctor.find({ isVerified: true }).select('-password');
     res.json(doctors);
