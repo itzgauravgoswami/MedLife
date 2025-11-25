@@ -12,55 +12,40 @@ let server = null;
 
 // Only use Socket.io in local development (not on Vercel)
 if (!process.env.VERCEL) {
-  const http = require('http');
-  const socketIo = require('socket.io');
-  server = http.createServer(app);
-  io = socketIo(server, {
-    cors: {
-      origin: '*',
-      methods: ['GET', 'POST']
-    }
-  });
-  console.log('Socket.io enabled for local development');
+  try {
+    const http = require('http');
+    const socketIo = require('socket.io');
+    server = http.createServer(app);
+    io = socketIo(server, {
+      cors: {
+        origin: '*',
+        methods: ['GET', 'POST']
+      }
+    });
+    console.log('Socket.io enabled for local development');
+  } catch (err) {
+    console.log('Socket.io not available, running without websockets');
+  }
 } else {
   console.log('Running on Vercel - Socket.io disabled');
 }
 
-const corsOptions = {
-  origin: ['https://medlife-psi.vercel.app', 'http://localhost:5173', 'http://localhost:5174', '*'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  exposedHeaders: ['Content-Length', 'X-JSON'],
-  optionsSuccessStatus: 200,
-  maxAge: 86400
-};
-
-app.use(cors(corsOptions));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Handle preflight requests
-app.options('*', cors(corsOptions));
-
-// Add CORS headers middleware for Vercel
+// Simplified CORS - allow everything for now
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Max-Age', '86400');
   
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
   next();
 });
+
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
   res.status(200).json({ 
@@ -78,12 +63,27 @@ app.get('/health', (req, res) => {
   });
 });
 
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB Connected'))
-  .catch(err => console.log('MongoDB Error:', err));
+// MongoDB Connection
+let dbConnected = false;
+mongoose.connect(process.env.MONGODB_URI, {
+  serverSelectionTimeoutMS: 5000,
+})
+  .then(() => {
+    console.log('MongoDB Connected');
+    dbConnected = true;
+    initializeAdmin();
+  })
+  .catch(err => {
+    console.log('MongoDB Error:', err.message);
+  });
 
 async function initializeAdmin() {
   try {
+    if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
+      console.log('Admin credentials not set in environment');
+      return;
+    }
+    
     const adminExists = await Admin.findOne({ email: process.env.ADMIN_EMAIL });
     if (!adminExists) {
       const admin = new Admin({
@@ -98,8 +98,6 @@ async function initializeAdmin() {
     console.log('Error creating admin:', err.message);
   }
 }
-
-initializeAdmin();
 
 app.use('/api/user', require('./routes/user'));
 app.use('/api/doctor', require('./routes/doctor'));
