@@ -42,12 +42,49 @@ app.get('/', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
+  const dbStates = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  };
+  
   res.json({ 
     status: 'OK', 
     message: 'Backend is running',
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    mongodb: {
+      state: dbStates[mongoose.connection.readyState] || 'unknown',
+      readyState: mongoose.connection.readyState
+    },
+    environment: {
+      hasMongoUri: !!process.env.MONGODB_URI,
+      hasJwtSecret: !!process.env.JWT_SECRET,
+      nodeEnv: process.env.NODE_ENV || 'development',
+      isVercel: !!process.env.VERCEL
+    },
     timestamp: new Date().toISOString()
   });
+});
+
+app.get('/debug/models', (req, res) => {
+  try {
+    const models = mongoose.modelNames();
+    res.json({
+      success: true,
+      models,
+      count: models.length,
+      connection: {
+        readyState: mongoose.connection.readyState,
+        host: mongoose.connection.host,
+        name: mongoose.connection.name
+      }
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
 });
 
 // MongoDB Connection
