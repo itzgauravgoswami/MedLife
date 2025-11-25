@@ -8,15 +8,25 @@ const Medicine = require('../models/Medicine');
 // Book Appointment (Public)
 router.post('/appointments', async (req, res) => {
   try {
+    console.log('Appointment request received:', req.body);
+    
     const { patientName, patientEmail, patientPhone, patientAge, symptoms, doctorId, appointmentDate, consultationType } = req.body;
 
     if (!doctorId) {
+      console.log('Error: Doctor selection required');
       return res.status(400).json({ message: 'Doctor selection required' });
     }
 
+    console.log('Checking doctor:', doctorId);
     const doctor = await Doctor.findById(doctorId);
-    if (!doctor || !doctor.isVerified) {
-      return res.status(400).json({ message: 'Invalid doctor selection' });
+    if (!doctor) {
+      console.log('Error: Doctor not found');
+      return res.status(400).json({ message: 'Doctor not found' });
+    }
+    
+    if (!doctor.isVerified) {
+      console.log('Error: Doctor not verified');
+      return res.status(400).json({ message: 'Doctor not verified' });
     }
 
     const appointment = new Appointment({
@@ -31,14 +41,21 @@ router.post('/appointments', async (req, res) => {
       status: 'pending'
     });
 
+    console.log('Saving appointment...');
     await appointment.save();
+    console.log('Appointment saved successfully');
 
     res.status(201).json({
       message: 'Appointment booked successfully. Doctor will confirm shortly.',
       appointment
     });
   } catch (err) {
-    res.status(500).json({ message: 'Error booking appointment', error: err.message });
+    console.error('Error booking appointment:', err);
+    res.status(500).json({ 
+      message: 'Error booking appointment', 
+      error: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
   }
 });
 

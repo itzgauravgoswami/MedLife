@@ -2,22 +2,28 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const http = require('http');
 const Admin = require('./models/Admin');
 
 const app = express();
-const server = http.createServer(app);
 
-// Socket.io setup (only works in non-serverless environments)
+// Socket.io setup (only in local development)
 let io = null;
-if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SOCKETIO === 'true') {
+let server = null;
+
+// Only use Socket.io in local development (not on Vercel)
+if (!process.env.VERCEL) {
+  const http = require('http');
   const socketIo = require('socket.io');
+  server = http.createServer(app);
   io = socketIo(server, {
     cors: {
       origin: '*',
       methods: ['GET', 'POST']
     }
   });
+  console.log('Socket.io enabled for local development');
+} else {
+  console.log('Running on Vercel - Socket.io disabled');
 }
 
 const corsOptions = {
@@ -31,10 +37,22 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-app.options('/', cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+app.get('/', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    message: 'MedLife Backend API',
+    version: '1.0.0'
+  });
+});
 
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', message: 'Backend is running' });
+  res.status(200).json({ 
+    status: 'OK', 
+    message: 'Backend is running',
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
 });
 
 mongoose.connect(process.env.MONGODB_URI)
@@ -71,6 +89,24 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/prescription', require('./routes/prescription'));
 app.use('/api/telemedicine', require('./routes/telemedicine'));
 app.use('/api/medbot', require('./routes/medbot'));
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ 
+    message: 'Route not found',
+    path: req.path,
+    method: req.method
+  });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ 
+    message: 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  });
+});
 
 // Socket.io event handlers (only if socket.io is enabled)
 if (io) {
@@ -124,10 +160,13 @@ if (io) {
   app.set('io', io);
 }
 
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-// Export for Vercel
-module.exports = app;
+// For Vercel serverless
+if (process.env.VERCEL) {
+  module.exports = app;
+} else {
+  // For local development with Socket.io
+  const PORT = process.env.PORT || 5000;
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
