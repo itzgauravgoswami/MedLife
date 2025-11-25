@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 export default function Navbar() {
   const navigate = useNavigate()
+  const { isAuthenticated, userRole, user, logout } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isDoctorDropdownOpen, setIsDoctorDropdownOpen] = useState(false)
-  const [doctorToken, setDoctorToken] = useState(localStorage.getItem('doctorToken'))
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
 
   const menuItems = [
     { label: 'Home', href: '/' },
@@ -16,19 +17,29 @@ export default function Navbar() {
     { label: 'Contact', href: '/contact' },
   ]
 
-  const handleLogoutDoctor = () => {
-    localStorage.removeItem('doctorToken')
-    localStorage.removeItem('doctorData')
-    setDoctorToken(null)
-    setIsDoctorDropdownOpen(false)
+  const handleLogout = () => {
+    logout()
+    setIsUserDropdownOpen(false)
+    navigate('/')
   }
 
-  const handleDoctorAdminAccess = () => {
-    if (doctorToken) {
-      navigate('/doctor-admin')
-      setIsDoctorDropdownOpen(false)
-    } else {
-      navigate('/doctor-login')
+  const getDashboardRoute = () => {
+    switch (userRole) {
+      case 'patient': return '/patient-dashboard'
+      case 'doctor': return '/doctor-admin'
+      case 'admin': return '/admin-dashboard'
+      case 'delivery': return '/delivery-dashboard'
+      default: return '/'
+    }
+  }
+
+  const getUserLabel = () => {
+    switch (userRole) {
+      case 'patient': return 'My Dashboard'
+      case 'doctor': return 'Doctor Portal'
+      case 'admin': return 'Admin Panel'
+      case 'delivery': return 'Deliveries'
+      default: return 'Dashboard'
     }
   }
 
@@ -61,75 +72,100 @@ export default function Navbar() {
 
           {/* Right Section */}
           <div className="flex items-center gap-3">
-            {/* Book Appointment Button */}
-            <button
-              onClick={() => navigate('/book-appointment')}
-              className="hidden sm:flex bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-semibold px-6 py-2 rounded-lg hover:shadow-lg transition-all text-sm"
-            >
-              Book Appointment
-            </button>
-
-            {/* Doctor Dropdown */}
-            <div className="relative hidden sm:block">
+            {/* Book Appointment Button - only for patients/guests */}
+            {(!isAuthenticated || userRole === 'patient') && (
               <button
-                onClick={() => setIsDoctorDropdownOpen(!isDoctorDropdownOpen)}
-                className="flex items-center gap-2 text-gray-700 font-semibold px-4 py-2 rounded-lg hover:bg-gray-100 transition-all"
+                onClick={() => navigate('/book-appointment')}
+                className="hidden sm:flex bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-semibold px-6 py-2 rounded-lg hover:shadow-lg transition-all text-sm"
               >
-                {doctorToken ? '👨‍⚕️ Doctor' : '🔐 Doctor'}
-                <span className={`text-xs transition-transform ${isDoctorDropdownOpen ? 'rotate-180' : ''}`}>▼</span>
+                Book Appointment
               </button>
+            )}
 
-              {/* Dropdown Menu */}
-              {isDoctorDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
-                  {doctorToken ? (
-                    <>
-                      <button
-                        onClick={handleDoctorAdminAccess}
-                        className="w-full text-left px-4 py-2 hover:bg-blue-50 text-gray-700 font-medium"
-                      >
-                        👨‍💼 My Dashboard
-                      </button>
-                      <button
-                        onClick={handleLogoutDoctor}
-                        className="w-full text-left px-4 py-2 hover:bg-red-50 text-gray-700 font-medium border-t"
-                      >
-                        🚪 Logout
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => {
-                          navigate('/doctor-login')
-                          setIsDoctorDropdownOpen(false)
-                        }}
-                        className="w-full text-left px-4 py-2 hover:bg-blue-50 text-gray-700 font-medium"
-                      >
-                        🔑 Login
-                      </button>
-                      <button
-                        onClick={() => {
-                          navigate('/doctor-register')
-                          setIsDoctorDropdownOpen(false)
-                        }}
-                        className="w-full text-left px-4 py-2 hover:bg-cyan-50 text-gray-700 font-medium border-t"
-                      >
-                        ✍️ Register
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
+            {isAuthenticated ? (
+              /* User Dropdown */
+              <div className="relative hidden sm:block">
+                <button
+                  onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                  className="flex items-center gap-2 text-gray-700 font-semibold px-4 py-2 rounded-lg hover:bg-gray-100 transition-all"
+                >
+                  <span>{user?.name || 'User'}</span>
+                  <span className={`text-xs transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`}>▼</span>
+                </button>
 
-            {/* Admin Button */}
-            <button
-              onClick={() => navigate('/admin-dashboard')}
-              className="hidden sm:block text-orange-600 font-semibold px-4 py-2 rounded-lg hover:bg-orange-50 transition-all text-sm"
-            >
-              🔐 Admin
-            </button>
+                {isUserDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+                    <button
+                      onClick={() => {
+                        navigate(getDashboardRoute())
+                        setIsUserDropdownOpen(false)
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-blue-50 text-gray-700 font-medium"
+                    >
+                      📊 {getUserLabel()}
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2 hover:bg-red-50 text-gray-700 font-medium border-t"
+                    >
+                      🚪 Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Login Dropdown */
+              <div className="relative hidden sm:block">
+                <button
+                  onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                  className="flex items-center gap-2 text-gray-700 font-semibold px-4 py-2 rounded-lg hover:bg-gray-100 transition-all"
+                >
+                  🔐 Login
+                  <span className={`text-xs transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`}>▼</span>
+                </button>
+
+                {isUserDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+                    <button
+                      onClick={() => {
+                        navigate('/user-login')
+                        setIsUserDropdownOpen(false)
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-blue-50 text-gray-700 font-medium"
+                    >
+                      👤 Patient Login
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigate('/doctor-login')
+                        setIsUserDropdownOpen(false)
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-cyan-50 text-gray-700 font-medium"
+                    >
+                      👨‍⚕️ Doctor Login
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigate('/admin-login')
+                        setIsUserDropdownOpen(false)
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-orange-50 text-gray-700 font-medium"
+                    >
+                      🔐 Admin Login
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigate('/delivery-login')
+                        setIsUserDropdownOpen(false)
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-green-50 text-gray-700 font-medium"
+                    >
+                      🚚 Delivery Login
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Mobile Menu Button */}
             <button
@@ -162,31 +198,33 @@ export default function Navbar() {
               </Link>
             ))}
             
-            <button
-              onClick={() => {
-                navigate('/book-appointment')
-                setIsMenuOpen(false)
-              }}
-              className="w-full text-left px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-semibold rounded-lg hover:shadow-lg transition-all mt-4"
-            >
-              📅 Book Appointment
-            </button>
+            {(!isAuthenticated || userRole === 'patient') && (
+              <button
+                onClick={() => {
+                  navigate('/book-appointment')
+                  setIsMenuOpen(false)
+                }}
+                className="w-full text-left px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-semibold rounded-lg hover:shadow-lg transition-all mt-4"
+              >
+                📅 Book Appointment
+              </button>
+            )}
 
             <div className="border-t border-gray-200 pt-4 space-y-2">
-              {doctorToken ? (
+              {isAuthenticated ? (
                 <>
                   <button
                     onClick={() => {
-                      handleDoctorAdminAccess()
+                      navigate(getDashboardRoute())
                       setIsMenuOpen(false)
                     }}
                     className="w-full text-left px-4 py-2 text-gray-700 font-medium hover:bg-blue-50 rounded-lg"
                   >
-                    👨‍💼 Doctor Dashboard
+                    📊 {getUserLabel()}
                   </button>
                   <button
                     onClick={() => {
-                      handleLogoutDoctor()
+                      handleLogout()
                       setIsMenuOpen(false)
                     }}
                     className="w-full text-left px-4 py-2 text-gray-700 font-medium hover:bg-red-50 rounded-lg"
@@ -198,33 +236,42 @@ export default function Navbar() {
                 <>
                   <button
                     onClick={() => {
-                      navigate('/doctor-login')
+                      navigate('/user-login')
                       setIsMenuOpen(false)
                     }}
                     className="w-full text-left px-4 py-2 text-gray-700 font-medium hover:bg-blue-50 rounded-lg"
                   >
-                    🔑 Doctor Login
+                    👤 Patient Login
                   </button>
                   <button
                     onClick={() => {
-                      navigate('/doctor-register')
+                      navigate('/doctor-login')
                       setIsMenuOpen(false)
                     }}
                     className="w-full text-left px-4 py-2 text-gray-700 font-medium hover:bg-cyan-50 rounded-lg"
                   >
-                    ✍️ Register Doctor
+                    👨‍⚕️ Doctor Login
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate('/admin-login')
+                      setIsMenuOpen(false)
+                    }}
+                    className="w-full text-left px-4 py-2 text-orange-600 font-medium hover:bg-orange-50 rounded-lg"
+                  >
+                    🔐 Admin Login
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate('/delivery-login')
+                      setIsMenuOpen(false)
+                    }}
+                    className="w-full text-left px-4 py-2 text-green-600 font-medium hover:bg-green-50 rounded-lg"
+                  >
+                    🚚 Delivery Login
                   </button>
                 </>
               )}
-              <button
-                onClick={() => {
-                  navigate('/admin-dashboard')
-                  setIsMenuOpen(false)
-                }}
-                className="w-full text-left px-4 py-2 text-orange-600 font-medium hover:bg-orange-50 rounded-lg"
-              >
-                🔐 Admin Panel
-              </button>
             </div>
           </div>
         )}

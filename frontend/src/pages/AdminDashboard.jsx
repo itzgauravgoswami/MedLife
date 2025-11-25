@@ -14,6 +14,9 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [showMedicineForm, setShowMedicineForm] = useState(false)
   const [showLoginForm, setShowLoginForm] = useState(!adminToken)
+  const [pendingDeliveryPartners, setPendingDeliveryPartners] = useState([])
+  const [verifiedDeliveryPartners, setVerifiedDeliveryPartners] = useState([])
+  const [availablePartners, setAvailablePartners] = useState([])
 
   const [loginData, setLoginData] = useState({ email: '', password: '' })
   const [medicineFormData, setMedicineFormData] = useState({
@@ -73,10 +76,82 @@ export default function AdminDashboard() {
       if (medicinesRes.ok) setMedicines(await medicinesRes.json())
       if (appointmentsRes.ok) setAppointments(await appointmentsRes.json())
       if (ordersRes.ok) setOrders(await ordersRes.json())
+      
+      // Fetch delivery partners
+      fetchDeliveryPartners(token)
     } catch (err) {
       console.log('Error fetching data:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchDeliveryPartners = async (token) => {
+    try {
+      const headers = { 'Authorization': `Bearer ${token}` }
+      const response = await fetch(`${API_URL}/api/admin/delivery-partners`, { headers })
+      if (response.ok) {
+        const data = await response.json()
+        setPendingDeliveryPartners(data.filter(p => !p.isVerified))
+        setVerifiedDeliveryPartners(data.filter(p => p.isVerified))
+        setAvailablePartners(data.filter(p => p.isVerified && p.isAvailable))
+      }
+    } catch (err) {
+      console.log('Error fetching delivery partners:', err)
+    }
+  }
+
+  const handleVerifyDeliveryPartner = async (partnerId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/admin/delivery-partners/${partnerId}/verify`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`
+        },
+        body: JSON.stringify({ isVerified: true })
+      })
+
+      if (response.ok) {
+        alert('Delivery partner verified successfully!')
+        fetchDeliveryPartners(adminToken)
+      }
+    } catch (err) {
+      console.log('Error verifying delivery partner:', err)
+    }
+  }
+
+  const handleRejectDeliveryPartner = async (partnerId) => {
+    if (window.confirm('Are you sure you want to reject this delivery partner?')) {
+      try {
+        await fetch(`${API_URL}/api/admin/delivery-partners/${partnerId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        })
+        fetchDeliveryPartners(adminToken)
+      } catch (err) {
+        console.log('Error rejecting delivery partner:', err)
+      }
+    }
+  }
+
+  const handleAssignDelivery = async (orderId, partnerId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/payment/${orderId}/assign`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`
+        },
+        body: JSON.stringify({ deliveryPartnerId: partnerId })
+      })
+
+      if (response.ok) {
+        alert('Delivery partner assigned successfully!')
+        fetchAllData(adminToken)
+      }
+    } catch (err) {
+      console.log('Error assigning delivery:', err)
     }
   }
 
@@ -237,18 +312,18 @@ export default function AdminDashboard() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-4 mb-6 border-b bg-white rounded-lg overflow-hidden">
-          {['doctors', 'medicines', 'appointments', 'orders'].map(tab => (
+        <div className="flex gap-4 mb-6 border-b bg-white rounded-lg overflow-x-auto">
+          {['doctors', 'delivery', 'medicines', 'appointments', 'orders'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-6 py-3 font-semibold transition ${
+              className={`px-6 py-3 font-semibold transition whitespace-nowrap ${
                 activeTab === tab
                   ? 'text-cyan-600 border-b-2 border-cyan-600'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'delivery' ? 'Delivery Partners' : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
@@ -427,6 +502,7 @@ export default function AdminDashboard() {
                       <th className="px-4 py-2 text-left">Medicines</th>
                       <th className="px-4 py-2 text-left">Total</th>
                       <th className="px-4 py-2 text-left">Status</th>
+                      <th className="px-4 py-2 text-left">Delivery Partner</th>
                       <th className="px-4 py-2 text-left">Date</th>
                       <th className="px-4 py-2 text-left">Actions</th>
                     </tr>
@@ -466,6 +542,24 @@ export default function AdminDashboard() {
                             <option value="cancelled">Cancelled</option>
                           </select>
                         </td>
+                        <td className="px-4 py-3">
+                          {order.deliveryPartnerId ? (
+                            <span className="text-green-600 text-xs">✓ Assigned</span>
+                          ) : (
+                            <select
+                              onChange={(e) => handleAssignDelivery(order._id, e.target.value)}
+                              className="px-2 py-1 rounded text-xs border"
+                              defaultValue=""
+                            >
+                              <option value="">Assign Partner</option>
+                              {availablePartners.map(partner => (
+                                <option key={partner._id} value={partner._id}>
+                                  {partner.name} ({partner.vehicleType})
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-xs">{new Date(order.createdAt).toLocaleDateString()}</td>
                         <td className="px-4 py-3">
                           <button
@@ -481,6 +575,142 @@ export default function AdminDashboard() {
                 </table>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Delivery Partners Tab */}
+        {activeTab === 'delivery' && (
+          <div className="space-y-6">
+            {/* Pending Delivery Partners */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                Pending Verification ({pendingDeliveryPartners.length})
+              </h2>
+              {pendingDeliveryPartners.length === 0 ? (
+                <p className="text-gray-600">No pending delivery partners</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {pendingDeliveryPartners.map(partner => (
+                    <div key={partner._id} className="border rounded-lg p-4 hover:shadow-md transition">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900">{partner.name}</h3>
+                          <p className="text-gray-600 text-sm">{partner.email}</p>
+                          <p className="text-gray-600 text-sm">{partner.phone}</p>
+                        </div>
+                        <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">
+                          Pending
+                        </span>
+                      </div>
+                      <div className="space-y-1 text-sm mb-4">
+                        <p><strong>Vehicle:</strong> {partner.vehicleType} - {partner.vehicleNumber}</p>
+                        <p><strong>License:</strong> {partner.licenseNumber}</p>
+                        <p><strong>Aadhar:</strong> {partner.aadharNumber}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleVerifyDeliveryPartner(partner._id)}
+                          className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-4 py-2 rounded-lg hover:shadow-lg transition"
+                        >
+                          ✓ Verify
+                        </button>
+                        <button
+                          onClick={() => handleRejectDeliveryPartner(partner._id)}
+                          className="flex-1 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
+                        >
+                          ✗ Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Verified Delivery Partners */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                Active Delivery Partners ({verifiedDeliveryPartners.length})
+              </h2>
+              {verifiedDeliveryPartners.length === 0 ? (
+                <p className="text-gray-600">No verified delivery partners yet</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="px-4 py-2 text-left">Name</th>
+                        <th className="px-4 py-2 text-left">Contact</th>
+                        <th className="px-4 py-2 text-left">Vehicle</th>
+                        <th className="px-4 py-2 text-left">Status</th>
+                        <th className="px-4 py-2 text-left">Deliveries</th>
+                        <th className="px-4 py-2 text-left">Rating</th>
+                        <th className="px-4 py-2 text-left">Joined</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {verifiedDeliveryPartners.map(partner => (
+                        <tr key={partner._id} className="border-b hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            <div>
+                              <p className="font-semibold text-gray-900">{partner.name}</p>
+                              <p className="text-xs text-gray-500">{partner.licenseNumber}</p>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p>{partner.phone}</p>
+                            <p className="text-xs text-gray-500">{partner.email}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="font-semibold">{partner.vehicleType}</p>
+                            <p className="text-xs text-gray-500">{partner.vehicleNumber}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                              partner.isAvailable 
+                                ? 'bg-green-100 text-green-700' 
+                                : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              {partner.isAvailable ? '🟢 Available' : '⚫ Busy'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center font-semibold">
+                            {partner.totalDeliveries || 0}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-yellow-500">★ {partner.rating ? partner.rating.toFixed(1) : 'N/A'}</span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-500">
+                            {new Date(partner.createdAt).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Analytics Card */}
+            <div className="bg-gradient-to-r from-blue-500 to-cyan-400 rounded-lg shadow-md p-6 text-white">
+              <h3 className="text-xl font-bold mb-4">Delivery Analytics</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <p className="text-3xl font-bold">{verifiedDeliveryPartners.length}</p>
+                  <p className="text-sm opacity-90">Total Partners</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-3xl font-bold">{availablePartners.length}</p>
+                  <p className="text-sm opacity-90">Available Now</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-3xl font-bold">
+                    {verifiedDeliveryPartners.reduce((sum, p) => sum + (p.totalDeliveries || 0), 0)}
+                  </p>
+                  <p className="text-sm opacity-90">Total Deliveries</p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

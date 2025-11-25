@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const appointmentSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   patientName: {
     type: String,
     required: true
@@ -30,9 +34,12 @@ const appointmentSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
+  timeSlot: {
+    type: String
+  },
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'completed', 'cancelled'],
+    enum: ['pending', 'confirmed', 'completed', 'cancelled', 'rescheduled'],
     default: 'pending'
   },
   consultationType: {
@@ -43,7 +50,39 @@ const appointmentSchema = new mongoose.Schema({
   notes: {
     type: String
   },
+  doctorNotes: {
+    type: String
+  },
+  prescriptionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Prescription'
+  },
+  reports: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'MedicalReport'
+  }],
+  videoSessionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'VideoSession'
+  },
+  fee: {
+    type: Number
+  },
+  isPaid: {
+    type: Boolean,
+    default: false
+  },
+  paymentId: {
+    type: String
+  },
+  rejectionReason: {
+    type: String
+  },
   createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
     type: Date,
     default: Date.now
   }

@@ -1,6 +1,4 @@
 // API Configuration
-// Automatically uses Vercel backend in production, localhost in development
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = 'https://medlife-backend-sable.vercel.app';
 
 export default API_URL;

@@ -219,4 +219,42 @@ router.put('/appointments/:appointmentId', authAdminMiddleware, async (req, res)
   }
 });
 
+// Get All Delivery Partners
+router.get('/delivery-partners', authAdminMiddleware, async (req, res) => {
+  try {
+    const DeliveryPartner = require('../models/DeliveryPartner');
+    const partners = await DeliveryPartner.find().select('-password').sort({ createdAt: -1 });
+    res.json(partners);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching delivery partners', error: err.message });
+  }
+});
+
+// Verify Delivery Partner
+router.put('/delivery-partners/:partnerId/verify', authAdminMiddleware, async (req, res) => {
+  try {
+    const DeliveryPartner = require('../models/DeliveryPartner');
+    const partner = await DeliveryPartner.findByIdAndUpdate(
+      req.params.partnerId,
+      { isVerified: true },
+      { new: true }
+    ).select('-password');
+
+    res.json({ message: 'Delivery partner verified successfully', partner });
+  } catch (err) {
+    res.status(500).json({ message: 'Error verifying delivery partner', error: err.message });
+  }
+});
+
+// Reject/Delete Delivery Partner
+router.delete('/delivery-partners/:partnerId', authAdminMiddleware, async (req, res) => {
+  try {
+    const DeliveryPartner = require('../models/DeliveryPartner');
+    await DeliveryPartner.findByIdAndDelete(req.params.partnerId);
+    res.json({ message: 'Delivery partner removed successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error removing delivery partner', error: err.message });
+  }
+});
+
 module.exports = router;

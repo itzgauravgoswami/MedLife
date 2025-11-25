@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import API_URL from '../config/api'
 
 export default function DoctorLogin() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -26,6 +28,7 @@ export default function DoctorLogin() {
       if (response.ok && data.token) {
         localStorage.setItem('doctorToken', data.token)
         localStorage.setItem('doctorData', JSON.stringify(data.doctor))
+        login(data.token, data.doctor, 'doctor')
         navigate('/doctor-admin')
       } else {
         setError(data.message || 'Login failed')
