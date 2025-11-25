@@ -2,6 +2,16 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+
+// Global error handlers to prevent crashes
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
 const Admin = require('./models/Admin');
 
 const app = express();
@@ -14,17 +24,21 @@ let server = null;
 if (!process.env.VERCEL) {
   try {
     const http = require('http');
-    const socketIo = require('socket.io');
     server = http.createServer(app);
-    io = socketIo(server, {
-      cors: {
-        origin: '*',
-        methods: ['GET', 'POST']
-      }
-    });
-    console.log('Socket.io enabled for local development');
+    try {
+      const socketIo = require('socket.io');
+      io = socketIo(server, {
+        cors: {
+          origin: '*',
+          methods: ['GET', 'POST']
+        }
+      });
+      console.log('Socket.io enabled for local development');
+    } catch (socketErr) {
+      console.log('Socket.io not available, continuing without websockets');
+    }
   } catch (err) {
-    console.log('Socket.io not available, running without websockets');
+    console.log('HTTP server creation error:', err.message);
   }
 } else {
   console.log('Running on Vercel - Socket.io disabled');
@@ -63,19 +77,23 @@ app.get('/health', (req, res) => {
   });
 });
 
-// MongoDB Connection
+// MongoDB Connection - non-blocking
 let dbConnected = false;
-mongoose.connect(process.env.MONGODB_URI, {
-  serverSelectionTimeoutMS: 5000,
-})
-  .then(() => {
-    console.log('MongoDB Connected');
-    dbConnected = true;
-    initializeAdmin();
+if (process.env.MONGODB_URI) {
+  mongoose.connect(process.env.MONGODB_URI, {
+    serverSelectionTimeoutMS: 5000,
   })
-  .catch(err => {
-    console.log('MongoDB Error:', err.message);
-  });
+    .then(() => {
+      console.log('MongoDB Connected');
+      dbConnected = true;
+      initializeAdmin();
+    })
+    .catch(err => {
+      console.error('MongoDB Connection Error:', err.message);
+    });
+} else {
+  console.error('MONGODB_URI not set in environment variables');
+}
 
 async function initializeAdmin() {
   try {
@@ -99,17 +117,23 @@ async function initializeAdmin() {
   }
 }
 
-app.use('/api/user', require('./routes/user'));
-app.use('/api/doctor', require('./routes/doctor'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/delivery', require('./routes/delivery'));
-app.use('/api', require('./routes/public'));
-app.use('/api/order', require('./routes/order'));
-app.use('/api/payment', require('./routes/payment'));
-app.use('/api/reports', require('./routes/reports'));
-app.use('/api/prescription', require('./routes/prescription'));
-app.use('/api/telemedicine', require('./routes/telemedicine'));
-app.use('/api/medbot', require('./routes/medbot'));
+// Routes with error handling
+try {
+  app.use('/api/user', require('./routes/user'));
+  app.use('/api/doctor', require('./routes/doctor'));
+  app.use('/api/admin', require('./routes/admin'));
+  app.use('/api/delivery', require('./routes/delivery'));
+  app.use('/api', require('./routes/public'));
+  app.use('/api/order', require('./routes/order'));
+  app.use('/api/payment', require('./routes/payment'));
+  app.use('/api/reports', require('./routes/reports'));
+  app.use('/api/prescription', require('./routes/prescription'));
+  app.use('/api/telemedicine', require('./routes/telemedicine'));
+  app.use('/api/medbot', require('./routes/medbot'));
+  console.log('All routes loaded successfully');
+} catch (routeErr) {
+  console.error('Error loading routes:', routeErr.message);
+}
 
 // 404 handler
 app.use((req, res) => {
@@ -185,9 +209,15 @@ if (io) {
 if (process.env.VERCEL) {
   module.exports = app;
 } else {
-  // For local development with Socket.io
+  // For local development
   const PORT = process.env.PORT || 5000;
-  server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
+  if (server) {
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT} with Socket.io`);
+    });
+  } else {
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT} without Socket.io`);
+    });
+  }
 }
